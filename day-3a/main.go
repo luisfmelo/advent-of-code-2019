@@ -17,6 +17,23 @@ type Point struct {
 	y int
 }
 
+func newPointFromString(str string) Point {
+	splitted := strings.Split(str, ",")
+	x, err := strconv.Atoi(splitted[0])
+	if err != nil {
+		panic(err)
+	}
+	y, err := strconv.Atoi(splitted[1])
+	if err != nil {
+		panic(err)
+	}
+	return Point{x: x, y: y}
+}
+
+func (p *Point) toString() string {
+	return fmt.Sprintf("%v,%v", p.x, p.y)
+}
+
 func (p *Point) goLeft() {
 	p.x--
 }
@@ -37,8 +54,8 @@ func (p *Point) calcManhattanDistanceToPoint(p2 Point) int {
 	return int(math.Abs(float64(p.x-p2.x)) + math.Abs(float64(p.y-p2.y)))
 }
 
-func getPointsOfWire(result chan []Point, wirePath string) {
-	var wirePoints []Point
+func getPointsOfWire(result chan map[string]bool, wirePath string) {
+	wirePointsStr := map[string]bool{}
 	currPoint := Point{
 		x: 0,
 		y: 0,
@@ -54,30 +71,30 @@ func getPointsOfWire(result chan []Point, wirePath string) {
 		case "R":
 			for i := 0; i < dist; i++ {
 				currPoint.goRight()
-				wirePoints = append(wirePoints, currPoint)
+				wirePointsStr[currPoint.toString()] = true
 			}
 		case "L":
 			for i := 0; i < dist; i++ {
 				currPoint.goLeft()
-				wirePoints = append(wirePoints, currPoint)
+				wirePointsStr[currPoint.toString()] = true
 			}
 		case "U":
 			for i := 0; i < dist; i++ {
 				currPoint.goUp()
-				wirePoints = append(wirePoints, currPoint)
+				wirePointsStr[currPoint.toString()] = true
 			}
 		case "D":
 			for i := 0; i < dist; i++ {
 				currPoint.goDown()
-				wirePoints = append(wirePoints, currPoint)
+				wirePointsStr[currPoint.toString()] = true
 			}
 		}
 	}
-	result <- wirePoints
+	result <- wirePointsStr
 }
 
 func calcMinimumWiresCrossDistance(wire1Path string, wire2Path string) int {
-	ch := make(chan []Point, 2)
+	ch := make(chan map[string]bool, 2)
 
 	go getPointsOfWire(ch, wire1Path)
 	go getPointsOfWire(ch, wire2Path)
@@ -85,14 +102,14 @@ func calcMinimumWiresCrossDistance(wire1Path string, wire2Path string) int {
 	result1 := <-ch
 	result2 := <-ch
 	minDist := MaxInt
-	for _, p1 := range result1 {
-		for _, p2 := range result2 {
-			if p1.x == p2.x && p1.y == p2.y {
-				dist := p1.calcManhattanDistanceToPoint(Point{x: 0, y: 0})
-				if dist < minDist {
-					minDist = dist
-				}
+	for p1str, _ := range result1 {
+		if _, ok := result2[p1str]; ok {
+			point := newPointFromString(p1str)
+			dist := point.calcManhattanDistanceToPoint(Point{x: 0, y: 0})
+			if dist < minDist {
+				minDist = dist
 			}
+
 		}
 	}
 

@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -15,19 +14,6 @@ const MaxInt = int(^uint(0) >> 1)
 type Point struct {
 	x int
 	y int
-}
-
-func newPointFromString(str string) Point {
-	splitted := strings.Split(str, ",")
-	x, err := strconv.Atoi(splitted[0])
-	if err != nil {
-		panic(err)
-	}
-	y, err := strconv.Atoi(splitted[1])
-	if err != nil {
-		panic(err)
-	}
-	return Point{x: x, y: y}
 }
 
 func (p *Point) toString() string {
@@ -48,10 +34,6 @@ func (p *Point) goUp() {
 
 func (p *Point) goDown() {
 	p.y--
-}
-
-func (p *Point) calcManhattanDistanceToPoint(p2 Point) int {
-	return int(math.Abs(float64(p.x-p2.x)) + math.Abs(float64(p.y-p2.y)))
 }
 
 func getPointsOfWire(ch chan map[string]int, wirePath string) {
