@@ -17,6 +17,23 @@ type Point struct {
 	y int
 }
 
+func newPointFromString(str string) Point {
+	splitted := strings.Split(str, ",")
+	x, err := strconv.Atoi(splitted[0])
+	if err != nil {
+		panic(err)
+	}
+	y, err := strconv.Atoi(splitted[1])
+	if err != nil {
+		panic(err)
+	}
+	return Point{x: x, y: y}
+}
+
+func (p *Point) toString() string {
+	return fmt.Sprintf("%v,%v", p.x, p.y)
+}
+
 func (p *Point) goLeft() {
 	p.x--
 }
@@ -37,66 +54,77 @@ func (p *Point) calcManhattanDistanceToPoint(p2 Point) int {
 	return int(math.Abs(float64(p.x-p2.x)) + math.Abs(float64(p.y-p2.y)))
 }
 
-func getPointsOfWire(result chan []Point, wirePath string) {
-	var wirePoints []Point
+func getPointsOfWire(ch chan map[string]int, wirePath string) {
+	wirePoints := map[string]int{}
 	currPoint := Point{
 		x: 0,
 		y: 0,
 	}
 
+	steps := 0
 	for _, cmd := range strings.Split(wirePath, ",") {
 		direction := string(cmd[0])
 		dist, err := strconv.Atoi(cmd[1:])
 		if err != nil {
 			panic(err)
 		}
+
 		switch direction {
 		case "R":
 			for i := 0; i < dist; i++ {
 				currPoint.goRight()
-				wirePoints = append(wirePoints, currPoint)
+				steps++
+				if value, ok := wirePoints[currPoint.toString()]; !ok || steps < value {
+					wirePoints[currPoint.toString()] = steps
+				}
 			}
 		case "L":
 			for i := 0; i < dist; i++ {
 				currPoint.goLeft()
-				wirePoints = append(wirePoints, currPoint)
+				steps++
+				if value, ok := wirePoints[currPoint.toString()]; !ok || steps < value {
+					wirePoints[currPoint.toString()] = steps
+				}
 			}
 		case "U":
 			for i := 0; i < dist; i++ {
 				currPoint.goUp()
-				wirePoints = append(wirePoints, currPoint)
+				steps++
+				if value, ok := wirePoints[currPoint.toString()]; !ok || steps < value {
+					wirePoints[currPoint.toString()] = steps
+				}
 			}
 		case "D":
 			for i := 0; i < dist; i++ {
 				currPoint.goDown()
-				wirePoints = append(wirePoints, currPoint)
+				steps++
+				if value, ok := wirePoints[currPoint.toString()]; !ok || steps < value {
+					wirePoints[currPoint.toString()] = steps
+				}
 			}
 		}
 	}
-	result <- wirePoints
+	ch <- wirePoints
 }
 
-func calcMinimumWiresCrossDistance(wire1Path string, wire2Path string) int {
-	ch := make(chan []Point, 2)
-
+func calcMinimumWiresCrossSteps(wire1Path string, wire2Path string) int {
+	ch := make(chan map[string]int, 2)
 	go getPointsOfWire(ch, wire1Path)
 	go getPointsOfWire(ch, wire2Path)
 
 	result1 := <-ch
 	result2 := <-ch
-	minDist := MaxInt
-	for _, p1 := range result1 {
-		for _, p2 := range result2 {
-			if p1.x == p2.x && p1.y == p2.y {
-				dist := p1.calcManhattanDistanceToPoint(Point{x: 0, y: 0})
-				if dist < minDist {
-					minDist = dist
-				}
+
+	minSteps := MaxInt
+	for p1str, steps1 := range result1 {
+		if steps2, ok := result2[p1str]; ok {
+			if totalSteps := steps1 + steps2; totalSteps < minSteps {
+				minSteps = totalSteps
 			}
 		}
 	}
 
-	return minDist
+	return minSteps
 }
 
 func main() {
@@ -119,8 +147,8 @@ func main() {
 	}
 
 	if len(wires) == 2 {
-		result := calcMinimumWiresCrossDistance(wires[0], wires[1])
-		fmt.Println("Minimum distance:", result)
+		result := calcMinimumWiresCrossSteps(wires[0], wires[1])
+		fmt.Println("Minimum steps:", result)
 	} else {
 		fmt.Println("Input invalid")
 	}
