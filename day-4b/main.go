@@ -28,10 +28,11 @@ func ruleNeverDecrease(password int) bool {
 }
 
 func ruleHasTwoAdjacentNumbers(password int) bool {
-	//never decrease is equal to never increase (reverse order)
-	for lastRemaining := MaxInt; password > 0; password /= 10 {
+	for lastRemaining := MaxInt; password/10 > 0; password /= 10 {
 		remaining := password % 10
-		if remaining == lastRemaining {
+		nextValue := password / 10 % 10
+		nextNextValue := password / 100 % 10
+		if remaining == nextValue && remaining != nextNextValue && remaining != lastRemaining {
 			return true
 		}
 		lastRemaining = remaining
