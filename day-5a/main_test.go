@@ -10,9 +10,10 @@ import (
 func TestComputeIntCodeSequence(t *testing.T) {
 
 	output := make(chan int)
+	input := make(chan int)
 	intCode := []int{4, 2, 99}
 	expected := 99
-	go computeIntCodeSequence(intCode, output)
+	go computeIntCodeSequence(intCode, input, output)
 
 	actual := 0
 	idx := 0

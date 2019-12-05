@@ -75,3 +75,6 @@ diagnostic program ran successfully.
 
 After providing 1 to the only input instruction and passing all the tests, what diagnostic code does the program 
 produce?
+
+---
+To Run, execute: `go main.go input.txt 1`

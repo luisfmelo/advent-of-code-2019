@@ -17,6 +17,10 @@ const (
 	MULTIPLY operation = 2
 	INPUT    operation = 3
 	OUTPUT   operation = 4
+	JIT      operation = 5 // Jump if true
+	JIF      operation = 6 // Jump if false
+	LESS     operation = 7
+	EQUALS   operation = 8
 	HALT     operation = 99
 )
 
@@ -84,15 +88,15 @@ func computeIntCodeSequence(intCodeSequence []int, inputCh <-chan int, outputCh 
 		case ADD:
 			param1 := getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
 			param2 := getValueByMode(intCodeSequence, ptr+2, inst.secondParamMode)
-			idxResult := intCodeSequence[ptr+3]
-			intCodeSequence[idxResult] = param1 + param2
+			param3 := intCodeSequence[ptr+3]
+			intCodeSequence[param3] = param1 + param2
 			ptr += 4
 
 		case MULTIPLY:
 			param1 := getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
 			param2 := getValueByMode(intCodeSequence, ptr+2, inst.secondParamMode)
-			idxResult := intCodeSequence[ptr+3]
-			intCodeSequence[idxResult] = param1 * param2
+			param3 := intCodeSequence[ptr+3]
+			intCodeSequence[param3] = param1 * param2
 			ptr += 4
 
 		case INPUT:
@@ -100,8 +104,49 @@ func computeIntCodeSequence(intCodeSequence []int, inputCh <-chan int, outputCh 
 			ptr += 2
 
 		case OUTPUT:
-			outputCh <- getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
+			param1 := getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
+			outputCh <- param1
 			ptr += 2
+
+		case JIT:
+			param1 := getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
+			param2 := getValueByMode(intCodeSequence, ptr+2, inst.secondParamMode)
+			if param1 != 0 {
+				ptr = param2
+			} else {
+				ptr += 3
+			}
+
+		case JIF:
+			param1 := getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
+			param2 := getValueByMode(intCodeSequence, ptr+2, inst.secondParamMode)
+			if param1 == 0 {
+				ptr = param2
+			} else {
+				ptr += 3
+			}
+
+		case LESS:
+			param1 := getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
+			param2 := getValueByMode(intCodeSequence, ptr+2, inst.secondParamMode)
+			param3 := intCodeSequence[ptr+3]
+			if param1 < param2 {
+				intCodeSequence[param3] = 1
+			} else {
+				intCodeSequence[param3] = 0
+			}
+			ptr += 4
+
+		case EQUALS:
+			param1 := getValueByMode(intCodeSequence, ptr+1, inst.firstParamMode)
+			param2 := getValueByMode(intCodeSequence, ptr+2, inst.secondParamMode)
+			param3 := intCodeSequence[ptr+3]
+			if param1 == param2 {
+				intCodeSequence[param3] = 1
+			} else {
+				intCodeSequence[param3] = 0
+			}
+			ptr += 4
 
 		case HALT:
 			close(outputCh)
