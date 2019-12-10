@@ -74,7 +74,7 @@ func getValueByMode(intCodeSequence []int, idx int, m mode) int {
 	return -1
 }
 
-func computeIntCodeSequence(intCodeSequence []int, inputCh <-chan int, outputCh chan<- int, halt chan<- bool) {
+func computeIntCodeSequence(intCodeSequence []int, inputCh <-chan int, outputCh chan<- int) {
 	for ptr := 0; ptr < len(intCodeSequence); {
 		inst := newInstruction(intCodeSequence[ptr])
 
@@ -144,7 +144,7 @@ func computeIntCodeSequence(intCodeSequence []int, inputCh <-chan int, outputCh 
 
 		case HALT:
 			close(outputCh)
-			halt <- true
+			return
 
 		default:
 			panic("Op code not valid")
@@ -152,6 +152,7 @@ func computeIntCodeSequence(intCodeSequence []int, inputCh <-chan int, outputCh 
 	}
 
 	log.Fatalf("The code did not halt")
+	return
 }
 
 func copyIntCodeSequence(intCodeSequence []int) []int {
@@ -160,21 +161,20 @@ func copyIntCodeSequence(intCodeSequence []int) []int {
 }
 
 func computeThrusterSignal(intCodeSequence []int, phaseSettingSequence []int) int {
-	halt := make(chan bool)
 	// iterate over each amplifier (with a phase setting)
+	nextInputValue := 0
 	for _, phaseSetting := range phaseSettingSequence {
 		intCodeSequenceCopied := copyIntCodeSequence(intCodeSequence)
 		// Prepare inputs (phase setting + output of the previous computation - 0 if it's the first)
 		inputCh := make(chan int)
-		inputCh <- phaseSetting
-		inputCh <- 0
+		go func() {
+			inputCh <- phaseSetting
+			inputCh <- nextInputValue
+		}()
 		outputCh := make(chan int)
 		// Compute
-		go computeIntCodeSequence(intCodeSequenceCopied, inputCh, outputCh, halt)
-	}
-
-	for i:= 0; i < len(phaseSettingSequence); i++ {
-		<-halt
+		go computeIntCodeSequence(intCodeSequenceCopied, inputCh, outputCh)
+		nextInputValue = getOutput(outputCh)
 	}
 
 
